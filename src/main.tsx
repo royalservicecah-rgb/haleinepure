@@ -1,4 +1,4 @@
-import React,{useEffect,useState}from'react';
+import React,{useEffect,useRef,useState}from'react';
 import{createRoot}from'react-dom/client';
 import'./style.css';
 import{productMain,productPowder,problem}from'./assets';
@@ -16,31 +16,41 @@ function makeRequestId(){
   if(c?.getRandomValues){const a=new Uint32Array(4);c.getRandomValues(a);return`hp-${Date.now()}-${Array.from(a).map(x=>x.toString(36)).join('')}`}
   return`hp-${Date.now()}-${Math.random().toString(36).slice(2,12)}`;
 }
+function safeSessionGet(key:string){try{return window.sessionStorage.getItem(key)}catch{return null}}
+function safeSessionSet(key:string,value:string){try{window.sessionStorage.setItem(key,value)}catch{}}
+function safeSessionRemove(key:string){try{window.sessionStorage.removeItem(key)}catch{}}
 function captureTracking():Tracking{
   const params=new URLSearchParams(location.search);const keys=['utm_source','utm_medium','utm_campaign','utm_content','fbclid'] as const;
   const fresh:Tracking={};keys.forEach(k=>{const v=params.get(k);if(v)fresh[k]=v.slice(0,180)});
-  if(Object.keys(fresh).length){sessionStorage.setItem('haleinepure_tracking',JSON.stringify(fresh));return fresh}
-  try{return JSON.parse(sessionStorage.getItem('haleinepure_tracking')||'{}')}catch{return{}}
+  if(Object.keys(fresh).length){safeSessionSet('haleinepure_tracking',JSON.stringify(fresh));return fresh}
+  try{return JSON.parse(safeSessionGet('haleinepure_tracking')||'{}')}catch{return{}}
 }
 
 function App(){
   const[f,setF]=useState<FormState>({name:'',phone:'',quantity:1,zone:'abidjan',commune:'',city:'',quartier:''});
   const[busy,setBusy]=useState(false),[order,setOrder]=useState<any>(null),[err,setErr]=useState(''),[formSeen,setFormSeen]=useState(false);
+  const submittingRef=useRef(false),requestIdRef=useRef('');
   const set=(k:keyof FormState,v:any)=>setF(prev=>({...prev,[k]:v}));
   const subtotal=offers[f.quantity]||5000,delivery=f.quantity===1?(f.zone==='abidjan'?1000:2000):0,total=subtotal+delivery;
 
-  useEffect(()=>{captureTracking();const el=document.getElementById('commande');if(!el)return;const io=new IntersectionObserver(([x])=>setFormSeen(x.isIntersecting),{threshold:.12});io.observe(el);return()=>io.disconnect()},[]);
+  useEffect(()=>{captureTracking();const el=document.getElementById('commande');if(!el)return;if(!('IntersectionObserver'in window)){setFormSeen(true);return}const io=new IntersectionObserver(([x])=>setFormSeen(x.isIntersecting),{threshold:.12});io.observe(el);return()=>io.disconnect()},[]);
   const choose=(q:number)=>{set('quantity',q);requestAnimationFrame(()=>document.getElementById('commande')?.scrollIntoView({behavior:'smooth',block:'start'}))};
 
   async function submit(e:React.FormEvent){
-    e.preventDefault();setErr('');setBusy(true);
-    let rid=sessionStorage.getItem('haleinepure_request_id');if(!rid){rid=makeRequestId();sessionStorage.setItem('haleinepure_request_id',rid)}
+    e.preventDefault();
+    if(submittingRef.current)return;
+    submittingRef.current=true;setErr('');setBusy(true);
+    let rid=safeSessionGet('haleinepure_request_id')||requestIdRef.current;if(!rid){rid=makeRequestId();requestIdRef.current=rid;safeSessionSet('haleinepure_request_id',rid)}
+    let timer=0;
     try{
-      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,clientRequestId:rid,landmark:f.quartier,tracking:captureTracking()})});
-      const j=await r.json();if(!r.ok||!j.ok||!j.order)throw new Error('order_not_saved');
-      setOrder(j.order);sessionStorage.removeItem('haleinepure_request_id');scrollTo({top:0,behavior:'smooth'});
+      const request=fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,clientRequestId:rid,landmark:f.quartier,tracking:captureTracking()})});
+      const timeout=new Promise<Response>((_,reject)=>{timer=window.setTimeout(()=>reject(new Error('timeout')),25000)});
+      const r=await Promise.race([request,timeout]);
+      const text=await r.text();let j:any={};try{j=text?JSON.parse(text):{}}catch{}
+      if(!r.ok||!j.ok||!j.order)throw new Error('order_not_saved');
+      requestIdRef.current='';safeSessionRemove('haleinepure_request_id');setOrder(j.order);try{window.scrollTo({top:0,behavior:'smooth'})}catch{window.scrollTo(0,0)}
     }catch{setErr("La commande n'a pas été enregistrée. Vérifiez votre connexion puis réessayez.")}
-    finally{setBusy(false)}
+    finally{if(timer)window.clearTimeout(timer);submittingRef.current=false;setBusy(false)}
   }
 
   if(order)return <main className="confirmation"><section className="thanks"><div className="successIcon">✓</div><small>COMMANDE ENREGISTRÉE</small><h1>Merci, {String(order.customer_name||'').split(' ')[0]}.</h1><p>Votre commande est bien enregistrée. Gardez cette référence : <b>{order.order_number}</b>.</p><div className="receipt"><p><span>Produit</span><b>LAO LI SHI · 50 g</b></p><p><span>Quantité</span><b>{order.quantity} pot(s)</b></p><p><span>Destination</span><b>{order.commune||order.city}</b></p><p><span>Total</span><b>{Number(order.total).toLocaleString('fr-FR')} FCFA</b></p><p><span>Paiement</span><b>{order.payment_method}</b></p></div><a className="homeLink" href="/">Retour à l'accueil</a></section></main>;
