@@ -48,15 +48,24 @@ function trackFunnel(eventName:FunnelEvent,extra:{quantity?:number;zone?:string;
   }catch{}
 }
 
+function orderAge(seconds:number){
+  if(seconds<60)return 'Il y a moins d’une minute';
+  if(seconds<3600){const n=Math.floor(seconds/60);return `Il y a ${n} minute${n>1?'s':''}`}
+  if(seconds<86400){const n=Math.floor(seconds/3600);return `Il y a ${n} heure${n>1?'s':''}`}
+  const n=Math.floor(seconds/86400);return `Il y a ${n} jour${n>1?'s':''}`;
+}
+
 function Promotion({remaining}:{remaining:number}){
   const seconds=Math.max(0,Math.ceil(remaining/1000));
   const values=[Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60];
-  return <div className={`promoClock ${seconds===0?'ended':''}`}><div><span className="tag">OFFRE FLASH</span><strong>{seconds>0?'La promotion prend fin dans':'Offre promotionnelle terminée'}</strong><small>Fin le 2 octobre à 18 h 45 · heure d’Abidjan</small></div>{seconds>0&&<div className="clockDigits" role="timer" aria-label={`${values[0]} heures ${values[1]} minutes ${values[2]} secondes restantes`}>{values.map((v,i)=><div key={i}><b>{String(v).padStart(2,'0')}</b><span>{['HEURES','MINUTES','SECONDES'][i]}</span></div>)}</div>}</div>;
+  return <div className={`promoClock ${seconds===0?'ended':''}`}><div><span className="tag">OFFRE FLASH</span><strong>{seconds>0?'L’offre se termine bientôt !':'Offre promotionnelle terminée'}</strong><small>Fin le 2 octobre à 18 h 45 · heure d’Abidjan</small></div>{seconds>0&&<div className="clockDigits" role="timer" aria-label={`${values[0]} heures ${values[1]} minutes ${values[2]} secondes restantes`}>{values.map((v,i)=><div key={i}><b>{String(v).padStart(2,'0')}</b><span>{['HEURES','MINUTES','SECONDES'][i]}</span></div>)}</div>}</div>;
 }
 
 function App(){
   const[remaining,setRemaining]=useState(()=>Math.max(0,PROMO_END-Date.now()));
   const[deliveredCount,setDeliveredCount]=useState(0),[proofVisible,setProofVisible]=useState(false);
+  const[recentOrders,setRecentOrders]=useState<{ageSeconds:number;receivedAt:number}[]>([]),[proofIndex,setProofIndex]=useState(0);
+  const[proofDismissed,setProofDismissed]=useState(()=>safeSessionGet('haleinepure_proof_closed')==='1');
   const[promoEnded,setPromoEnded]=useState(()=>Date.now()>=PROMO_END);
   useEffect(()=>{
     let offset=0,stopped=false;
@@ -67,11 +76,20 @@ function App(){
       if(stopped||!data)return;
       if(Number.isFinite(data.serverTime)){offset=data.serverTime-Date.now();tick()}
       if(Number.isInteger(data.deliveredCount)&&data.deliveredCount>0)setDeliveredCount(data.deliveredCount);
+      if(Array.isArray(data.recentOrders))setRecentOrders(data.recentOrders.filter((x:any)=>Number.isFinite(x.ageSeconds)&&x.ageSeconds>=0&&x.ageSeconds<604800).slice(0,3).map((x:any)=>({ageSeconds:x.ageSeconds,receivedAt:Date.now()})));
     }).catch(()=>{}).finally(()=>window.clearTimeout(timeout));
-    const show=window.setTimeout(()=>setProofVisible(true),12000);
-    const hide=window.setTimeout(()=>setProofVisible(false),24000);
-    return()=>{stopped=true;controller.abort();window.clearInterval(interval);window.clearTimeout(timeout);window.clearTimeout(show);window.clearTimeout(hide)};
+
+    return()=>{stopped=true;controller.abort();window.clearInterval(interval);window.clearTimeout(timeout)};
   },[]);
+  useEffect(()=>{
+    if(!recentOrders.length||proofDismissed)return;
+    const timers:number[]=[];
+    recentOrders.forEach((_,i)=>{
+      timers.push(window.setTimeout(()=>{setProofIndex(i);setProofVisible(true)},12000+i*45000));
+      timers.push(window.setTimeout(()=>setProofVisible(false),20000+i*45000));
+    });
+    return()=>timers.forEach(window.clearTimeout);
+  },[recentOrders,proofDismissed]);
   const[f,setF]=useState<FormState>({name:'',phone:'',quantity:1,zone:'abidjan',commune:'',city:'',quartier:''});
   const[busy,setBusy]=useState(false),[order,setOrder]=useState<any>(null),[err,setErr]=useState(''),[formSeen,setFormSeen]=useState(false),[offersSeen,setOffersSeen]=useState(false),[galleryIndex,setGalleryIndex]=useState(0);
   const submittingRef=useRef(false),requestIdRef=useRef(''),offersTrackedRef=useRef(false),checkoutViewTrackedRef=useRef(false),checkoutStartedRef=useRef(false);
@@ -130,7 +148,7 @@ function App(){
 
   return <>
     <header><a className="brand" href="#top">Haleine<span>Pure</span></a><a className="headerCta" href="#offres">Voir les offres</a></header>
-    <main id="top">
+    <main id="top"><Promotion remaining={remaining}/>
       <section className="hero">
         <div className="heroCopy">
           <span className="tag">HALEINEPURE PRÉSENTE · LAO LI SHI · 50 G</span>
@@ -166,13 +184,13 @@ function App(){
 
       <section className="delivery"><div className="sectionHead"><span className="tag">LIVRAISON & PAIEMENT</span><h2>Vous savez comment vous payez avant de commander</h2></div><div className="deliveryGrid"><article><span>ABIDJAN</span><h3>Paiement à la livraison</h3><p>1 pot : livraison 1 000 F.</p><p>2 ou 3 pots : livraison incluse.</p></article><article><span>INTÉRIEUR DU PAYS</span><h3>Paiement avant expédition</h3><p>1 pot : livraison 2 000 F.</p><p>2 ou 3 pots : livraison incluse.</p></article></div></section>
 
-      <section id="offres" className="offersSection"><Promotion remaining={remaining}/><span className="tag">CHOISISSEZ VOTRE FORMULE</span><h2>Choisissez votre offre</h2><p className="offersLead">3 pots : 4 000 F par pot, livraison incluse. Votre total est affiché avant validation.</p><div className="offers" role="group" aria-label="Choisissez votre offre">{[1,2,3].map(q=><button key={q} className={`offerRow ${q===3?'best ':''}${f.quantity===q?'selected':''}`} aria-pressed={f.quantity===q} onClick={()=>choose(q)}><span className="offerRadio" aria-hidden="true"/><img className="offerProduct" src={productMain} loading="lazy" alt=""/><span className="offerDetails">{q===3&&<span className="offerRecommendation">MEILLEURE VALEUR</span>}<strong>{q} {q===1?'pot':'pots'}</strong><b>{money(offers[q])}</b>{q===3&&<small>4 000 F / pot · 3 000 F économisés</small>}</span><span className="offerShipping">{q===1?<><span>Abidjan <b>+1 000 F</b></span><span>Intérieur <b>+2 000 F</b></span></>:<b>Livraison incluse</b>}</span></button>)}</div><a className="cta offersBottomCta" href="#commande">COMMANDER MAINTENANT</a></section>
+      <section id="offres" className="offersSection"><span className="tag">CHOISISSEZ VOTRE FORMULE</span><h2>Choisissez votre offre</h2><p className="offersLead">3 pots : 4 000 F par pot, livraison incluse. Votre total est affiché avant validation.</p><div className="offers" role="group" aria-label="Choisissez votre offre">{[1,2,3].map(q=><button key={q} className={`offerRow ${q===3?'best ':''}${f.quantity===q?'selected':''}`} aria-pressed={f.quantity===q} onClick={()=>choose(q)}><span className="offerRadio" aria-hidden="true"/><img className="offerProduct" src={productMain} loading="lazy" alt=""/><span className="offerDetails">{q===3&&<span className="offerRecommendation">MEILLEURE VALEUR</span>}<strong>{q} {q===1?'pot':'pots'}</strong><b>{money(offers[q])}</b>{q===3&&<small>4 000 F / pot · 3 000 F économisés</small>}</span><span className="offerShipping">{q===1?<><span>Abidjan <b>+1 000 F</b></span><span>Intérieur <b>+2 000 F</b></span></>:<b>Livraison incluse</b>}</span></button>)}</div><a className="cta offersBottomCta" href="#commande">COMMANDER MAINTENANT</a></section>
 
       <section className="faq"><span className="tag">QUESTIONS FRÉQUENTES</span><h2>Avant de commander</h2><details><summary>Comment utiliser LAO LI SHI ?</summary><p>Humidifiez légèrement la brosse, prélevez une petite quantité de poudre, brossez soigneusement puis rincez.</p></details><details><summary>Quelle quantité contient le pot ?</summary><p>Chaque pot contient 50 g de poudre dentaire LAO LI SHI.</p></details><details><summary>Puis-je commander 2 ou 3 pots ?</summary><p>Oui. 2 pots coûtent 10 000 F avec livraison incluse. 3 pots coûtent 12 000 F avec livraison incluse, soit 4 000 F par pot.</p></details><details><summary>Comment se passe la livraison ?</summary><p>À Abidjan, le paiement se fait à la livraison. Pour l’intérieur du pays, le paiement est effectué avant expédition.</p></details><details><summary>Quels sont les frais de livraison ?</summary><p>Pour 1 pot : 1 000 F à Abidjan ou 2 000 F à l’intérieur. Pour 2 ou 3 pots, la livraison est incluse.</p></details><details><summary>Que se passe-t-il après ma commande ?</summary><p>Votre commande est enregistrée, une référence s’affiche à l’écran, puis notre équipe vous contacte pour confirmer la livraison.</p></details></section>
 
       <section id="commande" className="order"><div className="orderIntro"><span className="tag">COMMANDE RAPIDE</span><h2>Finalisez votre commande</h2><p>Renseignez uniquement les informations utiles à la livraison. Votre total est affiché avant validation.</p><img className="orderProduct" src={productMain} loading="lazy" alt="Produit HaleinePure LAO LI SHI"/><div className="reassure"><span>✓ Abidjan : paiement à la livraison</span><span>✓ Intérieur : paiement avant expédition</span><span>✓ Notre équipe vous contacte pour la livraison</span></div></div><form onSubmit={submit} onFocusCapture={beginCheckout}><label>Nom et prénom<input required minLength={2} autoComplete="name" value={f.name} onChange={e=>set('name',e.target.value)} placeholder="Ex. Awa Koné"/></label><label>Téléphone<input required inputMode="tel" autoComplete="tel" value={f.phone} onChange={e=>set('phone',e.target.value)} placeholder="07 00 00 00 00"/></label><label>Offre<select value={f.quantity} onChange={e=>set('quantity',Number(e.target.value))}><option value="1">1 pot — 5 000 F</option><option value="2">2 pots — 10 000 F · livraison incluse</option><option value="3">3 pots — 12 000 F · livraison incluse</option></select></label><label>Zone de livraison<select value={f.zone} onChange={e=>setF({...f,zone:e.target.value as 'abidjan'|'interieur',city:'',commune:''})}><option value="abidjan">Abidjan</option><option value="interieur">Intérieur</option></select></label>{f.zone==='abidjan'?<label>Commune<input required value={f.commune} onChange={e=>set('commune',e.target.value)} placeholder="Ex. Cocody"/></label>:<label>Ville<input required value={f.city} onChange={e=>setF({...f,city:e.target.value,commune:e.target.value})} placeholder="Ex. Bouaké"/></label>}<label>Quartier / repère<input required value={f.quartier} onChange={e=>set('quartier',e.target.value)} placeholder="Quartier, carrefour, repère…"/></label><div className="summary"><p><span>Produit</span><b>LAO LI SHI · {f.quantity} pot(s)</b></p><p><span>Produits</span><b>{money(subtotal)}</b></p><p><span>Livraison</span><b>{delivery===0?'INCLUSE':money(delivery)}</b></p><p className="sumTotal"><span>TOTAL</span><b>{total.toLocaleString('fr-FR')} FCFA</b></p></div>{err&&<p className="error" role="alert">{err}</p>}<button className="submit" disabled={busy||promoEnded}>{promoEnded?'OFFRE PROMOTIONNELLE TERMINÉE':busy?'ENREGISTREMENT…':`VALIDER MA COMMANDE — ${money(total)}`}</button><small className="paymentNote">Abidjan : aucun paiement en ligne n’est demandé lors de cette validation.</small><small className="formNote">Après validation, gardez la référence de votre commande. Notre équipe vous contacte pour organiser la livraison.</small></form></section>
     </main>
-    {proofVisible&&deliveredCount>0&&!formSeen&&!order&&<aside className="socialToast" aria-label="Commandes réelles"><img src={productMain} alt=""/><div><b>{deliveredCount} commandes livrées</b><span>LAO LI SHI · Suivi réel des livraisons</span></div><button type="button" aria-label="Fermer la notification" onClick={()=>setProofVisible(false)}>×</button></aside>}
+    {proofVisible&&!proofDismissed&&recentOrders[proofIndex]&&!formSeen&&!order&&<aside className="socialToast" aria-label="Commandes réelles"><img src={productMain} alt=""/><div><b>Un client a passé commande</b><span>{orderAge(recentOrders[proofIndex].ageSeconds+(Date.now()-recentOrders[proofIndex].receivedAt)/1000)} · LAO LI SHI</span></div><button type="button" aria-label="Fermer la notification" onClick={()=>{setProofVisible(false);setProofDismissed(true);safeSessionSet('haleinepure_proof_closed','1')}}>×</button></aside>}
     {!formSeen&&!promoEnded&&<a className="floatingCta" href={offersSeen?'#commande':'#offres'}>{offersSeen?'FINALISER MA COMMANDE':'VOIR LES OFFRES · DÈS 5 000 F'}</a>}
     <footer><b>HaleinePure</b><span>LAO LI SHI · Hygiène bucco-dentaire</span><small>DESTOCKAGE RAPIDE · Côte d’Ivoire</small><small>© 2026 DESTOCKAGE RAPIDE</small></footer>
   </>;

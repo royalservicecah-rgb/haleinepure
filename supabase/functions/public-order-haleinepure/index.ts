@@ -46,7 +46,18 @@ Deno.serve(async (req) => {
         .eq("status", "delivered").not("customer_name", "ilike", "%test%")
         .not("customer_name", "ilike", "%qa%").not("customer_name", "ilike", "%demo%").not("customer_name", "ilike", "%démo%");
       if (error) return reply(origin, { error: "stats_unavailable" }, 503);
-      return reply(origin, { deliveredCount: count || 0, serverTime: Date.now(), promotionEnd: PROMO_END });
+      const now = Date.now();
+      const { data: recent, error: recentError } = await sb.from("orders").select("created_at")
+        .eq("product_sku", "haleine-lao-li-shi-50g").eq("source_domain", "haleinepure.destockagerapide.com")
+        .in("status", ["new", "confirmed", "delivered", "in_delivery", "preparing"])
+        .not("customer_name", "ilike", "%test%").not("customer_name", "ilike", "%qa%")
+        .not("customer_name", "ilike", "%demo%").not("customer_name", "ilike", "%démo%")
+        .gte("created_at", new Date(now - 7 * 86400000).toISOString())
+        .order("created_at", { ascending: false }).limit(3);
+      const recentOrders = recentError ? [] : (recent || []).map((row) => ({
+        ageSeconds: Math.max(0, Math.floor((now - Date.parse(row.created_at)) / 1000)),
+      })).filter((row) => Number.isFinite(row.ageSeconds));
+      return reply(origin, { deliveredCount: count || 0, recentOrders, serverTime: now, promotionEnd: PROMO_END });
     } catch { return reply(origin, { error: "stats_unavailable" }, 503); }
   }
   if (req.method !== "POST") {
@@ -166,4 +177,3 @@ Deno.serve(async (req) => {
     return reply(origin, { error: "bad_request" }, 400);
   }
 });
-
