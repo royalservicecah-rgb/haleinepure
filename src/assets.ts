@@ -4,3 +4,4 @@ export const problem='/images/haleinepure-problem.webp';
 export const problemTeeth='/images/problem-teeth.webp';
 export const productHand='/images/product-hand.webp';
 export const productBox='/images/product-box.webp';
+export const problemDeposits='/images/problem-deposits.webp';

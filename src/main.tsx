@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState}from'react';
 import{createRoot}from'react-dom/client';
 import'./style.css';
-import{productMain,productPowder,problemTeeth,productHand,productBox}from'./assets';
+import{productMain,productPowder,problemTeeth,problemDeposits,productHand,productBox}from'./assets';
 
 const API='https://tpdsklfcqenirvcemtkk.supabase.co/functions/v1/public-order-haleinepure';
 const EVENT_API='https://tpdsklfcqenirvcemtkk.supabase.co/functions/v1/public-event-haleinepure';
@@ -113,12 +113,12 @@ function App(){
           <a className="cta" href="#offres">CHOISIR MON OFFRE</a>
           <div className="trust"><span>✓ Paiement à la livraison à Abidjan</span><span>✓ Livraison disponible en Côte d’Ivoire</span></div>
         </div>
-        <figure className="heroProduct"><img src={productHand} alt="Vrai pot LAO LI SHI tenu dans une main"/><figcaption>LE VRAI PRODUIT · 50 G</figcaption></figure>
+        <figure className="heroProduct"><img src={productHand} width={675} height={1200} fetchPriority="high" alt="Vrai pot LAO LI SHI tenu dans une main"/><figcaption>LE VRAI PRODUIT · 50 G</figcaption></figure>
       </section>
 
       <section className="problemStrong" id="probleme">
-        <div className="problemImageWrap"><span className="dangerBadge">DÉPÔTS VISIBLES</span><img src={problemTeeth} loading="eager" alt="Illustration de dépôts visibles et de coloration sur des dents"/></div>
-        <div className="problemStrongCopy"><span className="tag tagRed">LE PROBLÈME SE VOIT</span><h2>Ce que vous voyez sur vos dents peut changer votre confiance.</h2><p>Dépôts visibles, taches et sensation de bouche moins fraîche peuvent vite devenir gênants au quotidien.</p><strong>Plus vous attendez, plus votre sourire peut perdre son aspect propre et soigné.</strong><a className="cta secondaryCta" href="#solution">VOIR LA SOLUTION</a></div>
+        <div className="problemImageWrap"><span className="dangerBadge">TACHES ET DÉPÔTS</span><img src={problemTeeth} width={960} height={540} loading="lazy" alt="Illustration de dépôts visibles et de coloration sur des dents"/><small className="illustrationNote">Illustration du problème, sans résultat attribué au produit.</small></div>
+        <div className="problemStrongCopy"><span className="tag tagRed">QUAND LA FRAÎCHEUR COMPTE</span><h2>Taches visibles. Bouche moins fraîche. Moins d’assurance.</h2><p>Le sourire et la fraîcheur de la bouche comptent dans vos échanges au quotidien.</p><strong>Découvrez un geste simple à intégrer à votre routine d’hygiène.</strong><a className="cta secondaryCta" href="#solution">DÉCOUVRIR LA ROUTINE</a></div>
       </section>
 
       <section className="identify"><div className="sectionHead"><span className="tag">EST-CE QUE CELA VOUS ARRIVE ?</span><h2>Vous vous reconnaissez ?</h2></div><div className="identifyGrid"><article><span>01</span><p>Vous évitez de sourire de trop près ?</p></article><article><span>02</span><p>Vous regardez souvent vos dents dans le miroir ?</p></article><article><span>03</span><p>Vous aimeriez une sensation de bouche plus propre et plus fraîche ?</p></article></div></section>
@@ -131,7 +131,7 @@ function App(){
 
       <section className="benefitsSection"><div className="sectionHead"><span className="tag">POUR VOTRE ROUTINE</span><h2>Une routine simple pour prendre soin de votre sourire</h2><p>Une petite quantité de poudre suffit pour compléter votre brossage quotidien.</p></div><div className="benefits"><article><b>01</b><h3>Nettoyage quotidien</h3><p>Complète votre routine d’hygiène bucco-dentaire.</p></article><article><b>02</b><h3>Fraîcheur</h3><p>Un geste simple orienté vers une sensation de bouche plus fraîche.</p></article><article><b>03</b><h3>Routine simple</h3><p>S’utilise avec votre brosse à dents habituelle.</p></article></div></section>
 
-      <section className="problemSolution"><article className="psProblem"><div className="psIcon bad">×</div><img src={problemTeeth} loading="lazy" alt="Dépôts visibles et coloration dentaire"/><div><span>À ÉVITER</span><h3>Dépôts visibles et sourire moins net</h3><p>Une bouche qui paraît moins propre peut rapidement devenir une source de gêne.</p></div></article><article className="psSolution"><div className="psIcon good">✓</div><img src={productMain} loading="lazy" alt="Pot LAO LI SHI en gros plan"/><div><span>VOTRE ROUTINE</span><h3>Ajoutez un geste d’hygiène simple à votre brossage</h3><p>LAO LI SHI s’intègre à votre routine quotidienne sans la compliquer.</p></div></article></section>
+      <section className="problemSolution"><article className="psProblem"><div className="psIcon bad">×</div><img src={problemDeposits} width={960} height={540} loading="lazy" alt="Illustration de dépôts dentaires, sans résultat attribué au produit"/><div><span>À ÉVITER</span><h3>Dépôts visibles et sourire moins net</h3><p>Une bouche qui paraît moins propre peut rapidement devenir une source de gêne.</p></div></article><article className="psSolution"><div className="psIcon good">✓</div><img src={productMain} loading="lazy" alt="Pot LAO LI SHI en gros plan"/><div><span>VOTRE ROUTINE</span><h3>Ajoutez un geste d’hygiène simple à votre brossage</h3><p>LAO LI SHI s’intègre à votre routine quotidienne sans la compliquer.</p></div></article></section>
 
       <section className="proof"><span className="tag">CONFIANCE</span><h2>Une commande claire du début à la fin</h2><div className="proofGrid"><article><b>Produit réellement présenté</b><p>Les photos montrent le véritable pot, son packaging et sa poudre.</p></article><article><b>Total visible avant validation</b><p>Prix du produit et livraison sont calculés avant votre commande.</p></article><article><b>Paiement adapté à votre zone</b><p>Abidjan à la livraison, intérieur avant expédition.</p></article><article><b>Confirmation réelle</b><p>Notre équipe vous contacte pour organiser votre livraison.</p></article></div></section>
 
