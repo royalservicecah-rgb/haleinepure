@@ -5,3 +5,6 @@ export const problemTeeth='/images/problem-teeth.webp';
 export const productHand='/images/product-hand.webp';
 export const productBox='/images/product-box.webp';
 export const problemDeposits='/images/problem-deposits.webp';
+export const smileMan='/images/smile-man.webp';
+export const smileWoman='/images/smile-woman.webp';
+export const productPowderCloseup='/images/product-powder-closeup.webp';

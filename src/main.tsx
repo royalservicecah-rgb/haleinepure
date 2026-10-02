@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState}from'react';
 import{createRoot}from'react-dom/client';
 import'./style.css';
-import{productMain,productPowder,problemTeeth,problemDeposits,productHand,productBox}from'./assets';
+import{productMain,productPowder,problemTeeth,problemDeposits,productHand,productBox,smileMan,smileWoman,productPowderCloseup}from'./assets';
 
 const API='https://tpdsklfcqenirvcemtkk.supabase.co/functions/v1/public-order-haleinepure';
 const EVENT_API='https://tpdsklfcqenirvcemtkk.supabase.co/functions/v1/public-event-haleinepure';
@@ -15,6 +15,7 @@ type GalleryItem={src:string;label:string;alt:string};
 const gallery:GalleryItem[]=[
   {src:productHand,label:'Le vrai produit',alt:'Pot LAO LI SHI tenu dans la main'},
   {src:productBox,label:'Packaging',alt:'Boîte et pot LAO LI SHI'},
+  {src:productPowderCloseup,label:'La poudre en détail',alt:'Gros plan de la poudre dans le pot ouvert'},
   {src:productPowder,label:'Pot ouvert',alt:'Pot LAO LI SHI ouvert avec sa poudre'},
   {src:productMain,label:'Format 50 g',alt:'Présentation réelle du produit LAO LI SHI'}
 ];
@@ -120,6 +121,8 @@ function App(){
         <div className="problemImageWrap"><span className="dangerBadge">TACHES ET DÉPÔTS</span><img src={problemTeeth} width={960} height={540} loading="lazy" alt="Illustration de dépôts visibles et de coloration sur des dents"/><small className="illustrationNote">Illustration du problème, sans résultat attribué au produit.</small></div>
         <div className="problemStrongCopy"><span className="tag tagRed">QUAND LA FRAÎCHEUR COMPTE</span><h2>Taches visibles. Bouche moins fraîche. Moins d’assurance.</h2><p>Le sourire et la fraîcheur de la bouche comptent dans vos échanges au quotidien.</p><strong>Découvrez un geste simple à intégrer à votre routine d’hygiène.</strong><a className="cta secondaryCta" href="#solution">DÉCOUVRIR LA ROUTINE</a></div>
       </section>
+
+      <section className="smileSection" id="sourire"><div className="sectionHead"><span className="tag">LE SOURIRE QUE L’ON SOUHAITE</span><h2>Un sourire lumineux. L’envie de sourire avec assurance.</h2><p>Une image du sourire auquel on aspire, pour accompagner la présentation de votre routine.</p></div><div className="smileGrid"><figure><img src={smileMan} width={800} height={1200} loading="lazy" alt="Sourire masculin illustrant un sourire souhaité, sans résultat attribué au produit"/><figcaption>L’assurance d’un sourire</figcaption></figure><figure><img src={smileWoman} width={960} height={640} loading="lazy" alt="Sourire féminin illustrant un sourire souhaité, sans résultat attribué au produit"/><figcaption>L’envie de sourire librement</figcaption></figure></div><p className="smileNote">Visuels d’illustration : ces personnes ne sont pas présentées comme des utilisateurs du produit. Ils ne constituent pas une preuve de résultat ni une garantie de blanchiment.</p><a className="cta" href="#solution">DÉCOUVRIR LA ROUTINE LAO LI SHI</a></section>
 
       <section className="identify"><div className="sectionHead"><span className="tag">EST-CE QUE CELA VOUS ARRIVE ?</span><h2>Vous vous reconnaissez ?</h2></div><div className="identifyGrid"><article><span>01</span><p>Vous évitez de sourire de trop près ?</p></article><article><span>02</span><p>Vous regardez souvent vos dents dans le miroir ?</p></article><article><span>03</span><p>Vous aimeriez une sensation de bouche plus propre et plus fraîche ?</p></article></div></section>
 
