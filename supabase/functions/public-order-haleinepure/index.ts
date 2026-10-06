@@ -1,5 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const PROMOTION_START = Date.parse('2026-10-06T14:35:00Z');
+const ACTIVE_MS = 90 * 60 * 1000;
+const CYCLE_MS = ACTIVE_MS + 5 * 60 * 1000;
+function promotionAt(now: number) {
+  const elapsed = Math.max(0, now - PROMOTION_START);
+  const cycleStart = PROMOTION_START + Math.floor(elapsed / CYCLE_MS) * CYCLE_MS;
+  const active = now < cycleStart + ACTIVE_MS;
+  const nextChange = cycleStart + (active ? ACTIVE_MS : CYCLE_MS);
+  return { active, nextChange, seconds: Math.max(0, Math.ceil((nextChange - now) / 1000)) };
+}
+
 const STORE = "destockage-haleine";
 const PROD = "https://haleinepure.destockagerapide.com";
 
@@ -20,7 +31,7 @@ function cors(origin: string | null) {
 function reply(origin: string | null, body: any, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors(origin), "Content-Type": "application/json" },
+    headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 }
 
@@ -56,7 +67,7 @@ Deno.serve(async (req) => {
       const recentOrders = recentError ? [] : (recent || []).map((row) => ({
         ageSeconds: Math.max(0, Math.floor((now - Date.parse(row.created_at)) / 1000)),
       })).filter((row) => Number.isFinite(row.ageSeconds));
-      return reply(origin, { deliveredCount: count || 0, recentOrders, serverTime: now, promotionActive: true });
+      return reply(origin, { deliveredCount: count || 0, recentOrders, serverTime: now, promotionActive: promotionAt(now).active, promotionNextChange: promotionAt(now).nextChange });
     } catch { return reply(origin, { error: "stats_unavailable" }, 503); }
   }
   if (req.method !== "POST") {
@@ -103,6 +114,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (old) return reply(origin, { ok: true, duplicate: true, order: old }, 200);
+
+    const promotion = promotionAt(Date.now());
+    if (!promotion.active) return reply(origin, {
+      error: "promotion_paused", serverTime: Date.now(),
+      promotionNextChange: promotion.nextChange,
+    }, 409);
 
     let num = "";
     for (let i = 0; i < 5; i++) {
