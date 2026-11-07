@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState}from'react';
 import{createRoot}from'react-dom/client';
 import'./style.css';
 import { promotionAt } from './promotion';
+import { isPersistedHaleineOrder } from './order-validation';
 import{productMain,productPowder,problemTeeth,problemDeposits,productHand,productBox,smileMan,smileWoman,productPowderCloseup}from'./assets';
 
 const API='https://tpdsklfcqenirvcemtkk.supabase.co/functions/v1/public-order-haleinepure';
@@ -137,12 +138,7 @@ function App(){
         setErr('Session terminée. Votre formulaire est conservé : réessayez à la reprise dans quelques minutes.');return;
       }
       if(!r.ok||j.ok!==true||!j.order)throw new Error('order_not_saved');
-      const confirmed=j.order;
-      if(typeof confirmed.order_number!=='string'||!confirmed.order_number.trim()
-        ||confirmed.store_id!=='destockage-haleine'
-        ||Number(confirmed.quantity)!==f.quantity
-        ||Number(confirmed.total)!==total
-        ||confirmed.source_domain!=='haleinepure.destockagerapide.com')
+      if(!isPersistedHaleineOrder(j.order,{quantity:f.quantity,total}))
         throw new Error('order_confirmation_incomplete');
       trackFunnel('order_success',{quantity:f.quantity,zone:f.zone,value:total});
       requestIdRef.current='';safeSessionRemove('haleinepure_request_id');setOrder(j.order);try{window.scrollTo({top:0,behavior:'smooth'})}catch{window.scrollTo(0,0)}
