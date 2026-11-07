@@ -106,20 +106,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: old } = await sb
+    const { data: old, error: lookupError } = await sb
       .from("orders")
       .select("*")
       .eq("client_request_id", rid)
       .eq("store_id", STORE)
       .maybeSingle();
 
+    if (lookupError) return reply(origin, { error: "database_unavailable" }, 503);
     if (old) return reply(origin, { ok: true, duplicate: true, order: old }, 200);
-
-    const promotion = promotionAt(Date.now());
-    if (!promotion.active) return reply(origin, {
-      error: "promotion_paused", serverTime: Date.now(),
-      promotionNextChange: promotion.nextChange,
-    }, 409);
 
     let num = "";
     for (let i = 0; i < 5; i++) {
@@ -135,7 +130,7 @@ Deno.serve(async (req) => {
     const payment = zone === "abidjan" ? "Paiement à la livraison" : "Paiement avant expédition";
     const row: any = {
       order_number: num,
-      status: "new",
+      status: zone === "abidjan" ? "new" : "awaiting_payment",
       customer_name: name,
       phone,
       country_code: "CI",
