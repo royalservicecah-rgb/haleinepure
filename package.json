@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "npm run test:contracts && vite build",
     "preview": "vite preview",
-    "test:contracts": "node --experimental-strip-types --test src/order-validation.test.ts"
+    "test:contracts": "node --experimental-strip-types --test src/order-validation.test.ts tests/haleinepure-edge.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
