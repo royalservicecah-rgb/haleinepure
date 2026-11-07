@@ -136,8 +136,15 @@ function App(){
         if(Number.isFinite(j.serverTime)){clockOffset.current=j.serverTime-Date.now();setClock(j.serverTime)}
         setErr('Session terminée. Votre formulaire est conservé : réessayez à la reprise dans quelques minutes.');return;
       }
-      if(!r.ok||!j.ok||!j.order)throw new Error('order_not_saved');
-      trackFunnel('order_success',{quantity:f.quantity,zone:f.zone,value:Number(j.order.total)||total});
+      if(!r.ok||j.ok!==true||!j.order)throw new Error('order_not_saved');
+      const confirmed=j.order;
+      if(typeof confirmed.order_number!=='string'||!confirmed.order_number.trim()
+        ||confirmed.store_id!=='destockage-haleine'
+        ||Number(confirmed.quantity)!==f.quantity
+        ||Number(confirmed.total)!==total
+        ||confirmed.source_domain!=='haleinepure.destockagerapide.com')
+        throw new Error('order_confirmation_incomplete');
+      trackFunnel('order_success',{quantity:f.quantity,zone:f.zone,value:total});
       requestIdRef.current='';safeSessionRemove('haleinepure_request_id');setOrder(j.order);try{window.scrollTo({top:0,behavior:'smooth'})}catch{window.scrollTo(0,0)}
     }catch{
       trackFunnel('order_error',{quantity:f.quantity,zone:f.zone,value:total});
